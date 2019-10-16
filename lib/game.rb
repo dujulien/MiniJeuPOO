@@ -6,23 +6,53 @@ require_relative 'player'
 #Player class with name and life_points in attributes
 class Game
 	attr_accessor :human_player
-	attr_accessor :enemies
+	#attr_accessor :enemies
+	attr_accessor :player_left #new attributes
+	attr_accessor :enemies_in_sight #new attributes
 
-	def initialize(name)
+	def initialize(name, player_left = 10)
 		@human_player = HumanPlayer.new(name)
-		@enemies = []
-		for i in 1..4 do
-			player_i = Player.new("Enemy_#{i}")
-			@enemies << player_i
+		@player_left = player_left
+		@enemies_in_sight = []
+		#for i in 1..4 do
+		#	player_i = Player.new("Enemy_#{i}")
+		#	@enemies_ << player_i
+		#end
+	end
+
+	def new_player_in_sight
+		if @player_left == 0
+			puts "Tous les joueurs sont déjà en vue."
+		else
+			dice = rand(1..6)
+			if dice == 1
+				puts "Aucun joueur n'arrive..."
+			elsif dice >= 2 && dice <= 4
+				@enemies_in_sight << Player.new("Enemy_#{rand(1..9999)}")
+				@player_left += -1
+				puts "Un ennemi apparaît en vue !"
+			elsif dice >= 5
+				if @player_left >= 2
+					2.times do 
+						@enemies_in_sight << Player.new("Enemy_#{rand(1..9999)}")
+					end
+					@player_left += -2
+					puts "2 ennemis apparaîssent en vue !"
+				else
+					@enemies_in_sight << Player.new("Enemy_#{rand(1..9999)}")
+					@player_left += -1
+					puts "Un ennemi apparaît en vue !"
+				end
+			end
 		end
 	end
 
 	def kill_player(player)
-		@enemies.delete_if{|enemy| enemy == player}
+		@enemies_in_sight.delete_if{|enemy| enemy == player}
 	end
 
 	def is_still_ongoing?
-		if @human_player.life_points > 0 && @enemies.size > 0
+		if @human_player.life_points > 0 && (@player_left + enemies_in_sight.size) > 0
 			return true
 		else
 			return false
@@ -31,7 +61,7 @@ class Game
 
 	def show_players
 		@human_player.show_state
-		puts "Il y a #{@enemies.size} ennemis restants."
+		puts "Il y a #{@player_left + @enemies_in_sight.size} ennemis restants."
 	end
 
 	def menu
@@ -41,7 +71,7 @@ class Game
 		puts "s - chercher à se soigner"
 		puts ""
 		puts "attaquer un joueur en vue :"
-		@enemies.each.with_index {|enemy, i| print "#{i} -" 
+		@enemies_in_sight.each.with_index {|enemy, i| print "#{i} - " 
 		print "#{enemy.show_state}"}
 	end
 
@@ -51,15 +81,15 @@ class Game
 		elsif choice == "s"
 			@human_player.search_health_pack
 		else
-			@enemies.each.with_index {|enemy, i| @human_player.attacks(enemy) if i.to_s == choice}
+			@enemies_in_sight.each.with_index {|enemy, i| @human_player.attacks(enemy) if i.to_s == choice}
 		end
-		@enemies.each.with_index {|enemy, i| self.kill_player(enemy) if enemy.life_points <= 0}
+		@enemies_in_sight.each.with_index {|enemy, i| self.kill_player(enemy) if enemy.life_points <= 0}
 	end
 
 	def enemies_attack
 		puts ""
 		puts "Les ennemis attaquent !"
-		@enemies.each{|enemy| enemy.attacks(@human_player)}
+		@enemies_in_sight.each{|enemy| enemy.attacks(@human_player) if @human_player.life_points > 0}
 	end
 
 	def end_game
